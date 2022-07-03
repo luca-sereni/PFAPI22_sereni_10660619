@@ -1,724 +1,476 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define BLACK 0
-#define RED 1
-
-struct node{
-    char* word;
-    struct node *left, *right, *parent;
-    short int is_valid;
-    short int color;
-};
+#include <time.h>
+#define HASH_SIZE 51
+#define INCREMENT_SIZE_ARRAY 50
+#define FORBIDDEN_SYMBOL '$'
+#define ALREADY_NOTED '&'
 
 struct filter{
-    short int belonged_to_reference_word;
-    short int* in_position;
     short int* not_in_position;
     int minimum_number;
     int exact_number;
 };
 
-struct node* t_nil;
-struct node leaf2;
+struct hash_element{
+    char* word;
+    struct hash_element* next;
+};
 
-void setup_words(struct node** tree, int words_size, int* number_of_words);
-//void new_game(char*** eligible_words, char ***filter_words, int words_size, int* number_of_words);
-void new_game(struct node** leaf, int words_size, int* number_of_words);
-void quicksort(char** eligible_words, int start, int end);
-void heapsort(char** eligible_words, int number_of_words);
-void build_max_heap(char** eligible_words, int number_of_words);
-void max_heapify(char** eligible_words, int i, int number_of_words);
-int partition(char** eligible_words, int start, int end);
-void swap(char** a, char** b);
-//int findWord(char** eligible_words, char* word_to_find, int start, int end);
-int findWord(struct node** root, char* word_to_find);
-void check_words(char* word, char* reference_word, struct filter* filters);
-int check_incorrect_positions(char* word, char* reference_word, int index, struct filter* filters);
-//void addWords(char*** eligible_words, char*** filter_words, int* number_of_words, int words_size);
-int addWords(struct node** leaf, int* number_of_words, int words_size);
-//void insert_node(char* word, struct node** leaf, int* occurrences);
-void insert_node(char* word, struct node** leaf);
-void inorder_tree_walk(struct node* tree);
-int print_number_filtered_words(struct node** tree, struct filter* filters, char* reference_word);
-void free_tree(struct node* node);
-int check_for_presence(char* reference_word, char character);
-char number_of_occurrences(char* word, char* reference_word, int index);
+struct hash_table{
+    struct hash_element** list;
+};
+
+char number_of_occurrences(const char* word, const char* reference_word, int index, int word_size);
 int hash(char character);
-void setup_filters(struct filter* filters, int words_size);
-void reset_words(struct node** tree);
-int find_occurrences(char *word, char c);
-
-void left_rotate(struct node** tree, struct node* element);
-void right_rotate(struct node** tree, struct node* element);
-void rb_insert(struct node** tree, struct node* element);
-void rb_insert_fixup(struct node** tree, struct node* element);
-struct node* get_new_node(char* word);
+int fast_atoi(char* str);
+struct hash_table* create_table(int table_size);
+void hash_insert(struct hash_table** table, char* word, int words_size);
+void setup_words(struct hash_table** table, int words_size);
+void add_words(struct hash_table** table, int words_size);
+void free_hash(struct hash_table** table, int table_size);
+void new_game(struct hash_table** table, int words_size);
+int hash_function(char* word);
+int find_word(struct hash_table** table, char* word_to_find);
+char* check_words_first_time(char* word, char* reference_word, struct filter* filters, int word_size, char* model_word);
+int count_occurrences(char* word, char ch);
+char** get_filtered_words(char*** old_array, struct filter* filters, char* modified_characters, int word_size, const char* model_word, int* number_of_words, int* array_size);
+char** first_get_filtered_words(struct hash_table** table, struct filter* filters, char* modified_characters, int word_size, const char* model_word, int* number_of_words, int* array_size);
+void add_words_during_game(struct hash_table** table, char*** game_words, struct filter* filters, int words_size, char* reference_word, char* model_word, int* number_of_words, int* array_size);
+void quicksort(char*** game_words, int start, int end);
 
 int main(){
-    int words_size;
+    int words_size, c, next_instruction;
     int index = 0;
-    char char_words_size[10];
-    int next_instruction;
-    int c, number_of_words = 0;
-    struct node* root = NULL;
-    //char *word = NULL;
-    //char** eligible_words = NULL;
-    //char** filter_words = NULL;
+    char* char_words_size = malloc(11* sizeof(char));
+    struct hash_table* table = create_table(HASH_SIZE);
 
     while((c = getchar()) != '\n' && c != EOF){
         char_words_size[index] = c;
         index++;
     }
     char_words_size[index] = '\0';
-    if(sscanf(char_words_size, "%d", &words_size)<0);
-    t_nil = &leaf2;
-    t_nil->color = BLACK;
-    root = t_nil;
-    //printf("%d\n", words_size);
-    //words_size = atoi(char_words_size);
-    //word = (char*)malloc((words_size+1) * sizeof(char));
-    //while((c=getchar()) != '\n' && c != EOF);
-    /*do{
-        index = 0;
-        c = getchar();
-        if(c == '+'){
-            while((c = getchar()) != '\n' && c != EOF){
-                instruction[index] = c;
-                index++;
-            }
-            instruction[index] = '\0';
-            if(strcmp(instruction, NEW_GAME) == 0){
-                //New game
-                printf("New game\n");
-                new_game(&eligible_words, &filter_words, words_size, &number_of_words);
-            } else if(strcmp(instruction, START_ADD_WORDS) == 0){
-                addWords(&eligible_words, &filter_words, &number_of_words, words_size);
-                //quicksort(eligible_words, 0, number_of_words-1);
-                heapsort(eligible_words, number_of_words);
-            } else if(strcmp(instruction, FILTRATE_PRINT) == 0){
-                //stampa_filtrate
-                printf("Filtrate print\n");
-            }
-        } else if(c != '\n' && c != EOF){
-            //add words
-            //while ((c = getchar()) != '\n');
-            word[index] = c;
-            index++;
-            while((c = getchar()) != '\n' && c != EOF){
-                word[index] = c;
-                index++;
-            }
-            word[index] = '\0';
-            printf("%s\n", word);
-            eligible_words = realloc(eligible_words, (number_of_words + 1) * sizeof(char*));
-            filter_words = realloc(filter_words, (number_of_words + 1) * sizeof(char*));
-            eligible_words[number_of_words] = (char*)malloc((words_size + 1) * sizeof(char));
-            filter_words[number_of_words] = (char*)malloc((words_size + 1) * sizeof(char));
-            strcpy(eligible_words[number_of_words], word);
-            strcpy(filter_words[number_of_words], word);
-            number_of_words++;
-        } else{
-            free(word);
-            for(i = 0; i < number_of_words; i++){
-                free(eligible_words[i]);
-                free(filter_words[i]);
-            }
-            free(filter_words);
-            free(eligible_words);
-            end = 1;
-            printf("Need to finish");
-        }
-    } while (end == 0);*/
-    setup_words(&root, words_size, &number_of_words);
+    words_size = fast_atoi(char_words_size);
+    free(char_words_size);
+    setup_words(&table, words_size);
     do{
-        index = 0;
         next_instruction = getchar();
         while((c = getchar()) != '\n' && c!= EOF);
-        /*while((c = getchar()) != '\n' && c!= EOF){
-            next_instruction[index] = c;
-            index++;
-        }*/
-        //next_instruction[index] = '\0';
         if(next_instruction == 'n'){
-            new_game(&root, words_size, &number_of_words);
-            reset_words(&root);
+            new_game(&table, words_size);
             c = getchar();
         } else if(next_instruction == 'i'){
-            addWords(&root, &number_of_words, words_size);
+            add_words(&table, words_size);
             c = getchar();
         }
     } while(c != '\n' && c!= EOF);
-    free_tree(root);
+    free_hash(&table, HASH_SIZE);
+    free(table);
     return 0;
 }
 
-    void setup_words(struct node** tree, int words_size, int* number_of_words){
-    char word[words_size + 1];
-    //struct node* tree = NULL;
-    //char** eligible_words = NULL;
-    //char** filter_words = NULL;
+struct hash_table* create_table(int size){
+    int i;
+    struct hash_table* table = (struct hash_table*) malloc(sizeof(struct hash_table));
+    table->list = (struct hash_element**) calloc(size, sizeof(struct hash_element*));
+    for(i = 0; i < size; i++)
+        table->list[i] = NULL;
+    return table;
+}
+
+void setup_words(struct hash_table** table, int words_size){
     int c, index;
+    char word_to_add[words_size + 1];
     while ((c = getchar()) != '+'){
         index = 0;
-        //occurrences = calloc(64, sizeof(int));
-        while (c != '\n' && c != EOF){
-            word[index] = c;
-            //i = hash(c);
-            //occurrences[i]++;
+        word_to_add[index] = c;
+        index++;
+        while ((c = getchar()) != '\n' && c != EOF){
+            word_to_add[index] = c;
             index++;
-            c = getchar();
         }
-        word[index] = '\0';
-        //printf("%s\n", word);
-        //insert_node(word, tree, occurrences);
-        //insert_node(word, tree);
-        rb_insert(tree, get_new_node(word));
-        //inorder_tree_walk(tree);
-        (*number_of_words)++;
-
-        //eligible_words = realloc(eligible_words, (number_of_words + 1) * sizeof(char*));
-        //filter_words = realloc(filter_words, (number_of_words + 1) * sizeof(char*));
-        //eligible_words[number_of_words] = (char*)malloc((words_size + 1) * sizeof(char));
-        //filter_words[number_of_words] = (char*)malloc((words_size + 1) * sizeof(char));
-        //strcpy(eligible_words[number_of_words], word);
-        //strcpy(filter_words[number_of_words], word);
+        word_to_add[index] = '\0';
+        hash_insert(table, word_to_add, words_size);
     }
 }
 
-
-/*void new_game(char ***eligible_words, char*** filter_words, int words_size, int* number_of_words){
-    char reference_word[words_size+1];
-    char word_to_analyze[words_size+1];
-    int c;
-    char char_number_of_controls[10], next_instruction[17];
-    int index = 0, number_of_controls, end = 0;
-    while((c = getchar()) != '\n' && c != EOF){
-        reference_word[index] = c;
-        index++;
+void hash_insert(struct hash_table** table, char* word, int words_size){
+    int index = hash_function(word);
+    struct hash_element* new_element = malloc(sizeof(struct hash_element));
+    new_element->word = malloc((words_size + 1) * sizeof(char));
+    strcpy(new_element->word, word);
+    new_element->next = NULL;
+    if((*table)->list[index] == NULL){
+        (*table)->list[index] = new_element;
+    }else{
+        new_element->next = (*table)->list[index];
+        (*table)->list[index] = new_element;
     }
-    reference_word[index] = '\0';
-    index = 0;
-    while((c = getchar()) != '\n' && c != EOF){
-        char_number_of_controls[index] = c;
-        index++;
-    }
-    char_number_of_controls[index] = '\0';
-    if(sscanf(char_number_of_controls, "%d", &number_of_controls)>0);
-    //number_of_controls = atoi(char_number_of_controls);
-    //quicksort(*eligible_words, 0, (*number_of_words) - 1);
-    printf("%d\n", *number_of_words);
-    heapsort(*eligible_words, *number_of_words);
-    do{
-        index = 0;
-        if((c = getchar()) == '+'){
-            //instructions
-            while((c = getchar()) != '\n' && c != EOF){
-                next_instruction[index] = c;
-                index++;
-            }
-            next_instruction[index] = '\0';
-            if(strcmp(next_instruction, START_ADD_WORDS) == 0){
-                addWords(eligible_words, filter_words, number_of_words, words_size);
-                //quicksort(*eligible_words, 0, (*number_of_words) - 1);
-                heapsort(*eligible_words, *number_of_words);
-            } else if(strcmp(next_instruction, FILTRATE_PRINT) == 0){
-                //stampa filtrate
-                printf("Stampa filtrate\n");
-            }
-        }else{
-            word_to_analyze[index] = c;
-            index++;
-            while((c = getchar()) != '\n' && c != EOF){
-                word_to_analyze[index] = c;
-                index++;
-            }
-            word_to_analyze[index] = '\0';
-            if(findWord(*eligible_words, word_to_analyze, 0, (*number_of_words)-1) == 1){
-                if(strcmp(reference_word, word_to_analyze) == 0){
-                    printf("ok\n");
-                    end = 1;
-                }else{
-                    //Analyze
-                    printf("analizzo %s\n", word_to_analyze);
-                    printf("%d\n", *number_of_words);
-                    number_of_controls--;
-                }
-            }else{
-                printf("not_exists\n");
-            }
-        }
-    } while (end == 0 && number_of_controls > 0);
-    index = 0;
-    c = getchar();
-    if(c == '+'){
-        while((c = getchar()) != '\n' && c != EOF){
-            next_instruction[index] = c;
-            index++;
-        }
-        next_instruction[index] = '\0';
-        if(strcmp(next_instruction, START_ADD_WORDS) == 0){
-            addWords(eligible_words, filter_words, number_of_words, words_size);
-            //quicksort(*eligible_words, 0, (*number_of_words) - 1);
-            heapsort(*eligible_words, *number_of_words);
-        } else if(strcmp(next_instruction, NEW_GAME) == 0){
-            new_game(eligible_words, filter_words, words_size, number_of_words);
-        }
-    }
-}*/
-
-/*void quicksort(char** eligible_words, int start, int end){
-    int q;
-    if(start < end){
-        q = partition(eligible_words, start, end);
-        quicksort(eligible_words, start, q-1);
-        quicksort(eligible_words, q+1, end);
-    }
-}*/
-
-/*int partition(char** eligible_words, int start, int end){
-    char* pivot = eligible_words[end];
-    int i = start - 1;
-    int j;
-    for(j = start; j <= end - 1; j++){
-        if(strcmp(eligible_words[j], pivot) < 0){
-            i++;
-            swap(&eligible_words[i], &eligible_words[j]);
-        }
-    }
-    swap(&eligible_words[i+1], &eligible_words[end]);
-    return i+1;
-}*/
-
-void swap(char** a, char** b){
-    char *t = *a;
-    *a = *b;
-    *b = t;
 }
 
-/*int findWord(char **eligible_words, char* word_to_find, int start, int end){
-    if(end >= start){
-        int middle = start + (end-start)/2;
-        if(strcmp(eligible_words[middle], word_to_find) == 0)
-            return 1;
-        if(strcmp(eligible_words[middle], word_to_find) > 0)
-            return findWord(eligible_words, word_to_find, start, middle-1);
-        return findWord(eligible_words, word_to_find, middle+1, end);
-    }
-    return 0;
-}*/
-
-/*void addWords(char ***eligible_words, char*** filter_words, int* number_of_words, int words_size){
-    int index, c, end = 0;
-    char* word_to_add = (char*)malloc((words_size+1) * sizeof(char));
+void add_words(struct hash_table** table, int words_size){
+    int c, index;
+    short int end = 0;
+    char word_to_add[words_size + 1];
     do{
-        index = 0;
         c = getchar();
         if(c == '+'){
             end = 1;
             while ((c = getchar()) != '\n' && c != EOF);
         }else{
+            index = 0;
             word_to_add[index] = c;
             index++;
-            while((c = getchar()) != '\n' && c != EOF){
+            while ((c = getchar()) != '\n' && c != EOF){
                 word_to_add[index] = c;
                 index++;
             }
             word_to_add[index] = '\0';
-            printf("%s\n", word_to_add);
-            *eligible_words = (char**)realloc(*eligible_words, ((*number_of_words) + 1) * sizeof(char *));
-            // *filter_words = (char**)realloc(*filter_words, ((*number_of_words)+1)*sizeof(char *));
-            (*eligible_words)[(*number_of_words)] = (char*)malloc((words_size + 1) * sizeof(char));
-            //(*filter_words)[(*number_of_words)] = (char*)malloc((words_size + 1) * sizeof(char));
-            strcpy((*eligible_words)[*number_of_words], word_to_add);
-            //strcpy((*filter_words)[*number_of_words], word_to_add);
-            (*number_of_words)++;
+            hash_insert(table, word_to_add, words_size);
         }
-    } while(end == 0);
-    free(word_to_add);
-}*/
+    } while (end == 0);
+}
 
-void max_heapify(char** eligible_words, int i, int number_of_words){
-    int left = (2*i) + 1;
-    int right = (2*i) + 2;
-    int max;
-    if(left < number_of_words && strcmp(eligible_words[left], eligible_words[i]) > 0) {
-        max = left;
-    }else{
-        max = i;
-    }
-    if(right < number_of_words && strcmp(eligible_words[right], eligible_words[max]) > 0){
-        max = right;
-    }
-    if(max != i){
-        swap(&eligible_words[i], &eligible_words[max]);
-        max_heapify(eligible_words, max, number_of_words);
+void free_element(struct hash_element* element){
+    if(element != NULL){
+        free_element(element->next);
+        free(element->word);
+        free(element);
     }
 }
 
-void build_max_heap(char** eligible_words, int number_of_words){
+void free_hash(struct hash_table** table, int table_size){
     int i;
-    for(i = number_of_words/2 - 1; i >= 0; i--){
-        max_heapify(eligible_words, i, number_of_words);
+    for(i = 0; i < table_size; i++){
+        free_element((*table)->list[i]);
     }
+    free((*table)->list);
 }
 
-void heapsort(char** eligible_words, int number_of_words){
-    int i;
-    int heap_size = number_of_words;
-    build_max_heap(eligible_words, number_of_words);
-    for(i = number_of_words - 1; i >= 0; i--){
-        swap(&eligible_words[0], &eligible_words[i]);
-        heap_size--;
-        max_heapify(eligible_words, 0, heap_size);
-    }
-}
-
-void insert_node(char* word, struct node** leaf){
-    int compare;
-    if(*leaf == NULL){
-        *leaf = (struct node*) malloc(sizeof(struct node));
-        (*leaf)->word = malloc((strlen(word) + 1)* sizeof(char));
-        strcpy((*leaf)->word, word);
-        (*leaf)->right = NULL;
-        (*leaf)->left = NULL;
-        //(*leaf)->occurrences = occurrences;
-        (*leaf)->is_valid = 1;
-    }else{
-        compare = strcmp(word, (*leaf)->word);
-        if(compare < 0){
-            //insert_node(word, &(*leaf)->left, occurrences);
-            insert_node(word, &(*leaf)->left);
-        } else if(compare > 0){
-            //insert_node(word, &(*leaf)->right, occurrences);
-            insert_node(word, &(*leaf)->right);
+int check_if_add_to_game(char* word, char* reference_word, struct filter* filters, int words_size, const char* model_word){
+    int i, index, index_ref, n;
+    for(i = 0; i < words_size; i++){
+        index = hash(word[i]);
+        if(filters[index].exact_number == 0 || filters[index].not_in_position[i] == 1 || (model_word[i] == reference_word[i] && reference_word[i] != word[i]))
+            return 0;
+        else{
+            index_ref = hash(reference_word[i]);
+            n = count_occurrences(word, reference_word[i]);
+            if(n < filters[index_ref].minimum_number || (filters[index_ref].exact_number != -1 && n != filters[index_ref].exact_number))
+                return 0;
         }
     }
-    //printf("word: %s, occurrences first: %c = %d\n", (*leaf)->word, (*leaf)->word[0], (*leaf)->occurrences[hash((*leaf)->word[0])]);
+    return 1;
 }
 
-void reset_words(struct node** tree){
-    if((*tree) != t_nil){
-        reset_words(&(*tree)->left);
-        (*tree)->is_valid = 1;
-        reset_words(&(*tree)->right);
-    }
-}
-
-void inorder_tree_walk(struct node* tree) {
-    if (tree != t_nil) {
-        inorder_tree_walk(tree->left);
-        if (tree->is_valid == 1)
-            printf("%s\n", tree->word);
-        inorder_tree_walk(tree->right);
-    }
-}
-
-int print_number_filtered_words(struct node** tree, struct filter* filters, char* reference_word){
-    int i,count=0, index, index_reference_word, num_of_occurrences, num_of_occurrences_ref_word;
-    unsigned int len;
-    int end = 0;
-    if((*tree) != t_nil){
-        count = count + print_number_filtered_words(&(*tree)->left, filters, reference_word);
-        if((*tree)->is_valid == 1 && strcmp((*tree)->word, reference_word) != 0) {
-            //printf("word: %s\n", (*tree)->word);
-            //printf("Ref.word: %s\n", reference_word);
-            len = strlen((*tree)->word);
-            i = 0;
-            while (i < len && end == 0){
-                index = hash((*tree)->word[i]);
-                index_reference_word = hash(reference_word[i]);
-                num_of_occurrences = find_occurrences((*tree)->word, (*tree)->word[i]);
-                num_of_occurrences_ref_word = find_occurrences((*tree)->word, reference_word[i]);
-                if(filters[index].belonged_to_reference_word == 0 || filters[index].not_in_position[i] == 1 || filters[index].exact_number > num_of_occurrences || filters[index].minimum_number > num_of_occurrences || filters[index_reference_word].minimum_number > num_of_occurrences_ref_word || filters[index_reference_word].exact_number > num_of_occurrences_ref_word || (filters[index_reference_word].in_position[i] == 1 && reference_word[i] != (*tree)->word[i])){
-                    (*tree)->is_valid = 0;
-                    count++;
-                    end = 1;
-                }
-                i++;
+void add_words_during_game(struct hash_table** table, char*** game_words, struct filter* filters, int words_size, char* reference_word, char* model_word, int* number_of_words, int* array_size){
+    int c, index;
+    short int end = 0;
+    char word_to_add[words_size + 1];
+    do{
+        c = getchar();
+        if(c == '+'){
+            end = 1;
+            while ((c = getchar()) != '\n' && c != EOF);
+        }else{
+            index = 0;
+            word_to_add[index] = c;
+            index++;
+            while ((c = getchar()) != '\n' && c != EOF){
+                word_to_add[index] = c;
+                index++;
             }
-            /*for (i = 0; i < len; i++) {
-                index = hash((*tree)->word[i]);
-                index_reference_word = hash(reference_word[i]);
-                num_of_occurrences = find_occurrences((*tree)->word, (*tree)->word[i]);
-                num_of_occurrences_ref_word = find_occurrences((*tree)->word, reference_word[i]);
-                if (filters[index].belonged_to_reference_word == 0) {
-                    //printf("%c\n", (*tree)->word[i]);
-                    //printf("dentro primo if\n");
-                    (*tree)->is_valid = 0;
-                    count++;
-                    break;
-                } else {
-                    if (filters[index].not_in_position[i] == 1) {
-                        //printf("dentro 1 if/else\n");
-                        (*tree)->is_valid = 0;
-                        count++;
-                        break;
-                    } else if (filters[index].exact_number > num_of_occurrences) {
-                        //(*tree)->occurrences[index]
-                        //printf("dentro 2 if/else\n");
-                        //printf("%d  --  %d\n", filters[index].exact_number, (*tree)->occurrences[index]);
-                        (*tree)->is_valid = 0;
-                        count++;
-                        break;
-                    } else if (filters[index].minimum_number > num_of_occurrences) {
-                        //printf("%c\n", (*tree)->word[i]);
-                        //printf("%d -- %d\n", filters[index].minimum_number, (*tree)->occurrences[index]);
-                        //printf("dentro 3 if/else\n");
-                        (*tree)->is_valid = 0;
-                        count++;
-                        break;
-                    } else if(filters[index_reference_word].belonged_to_reference_word == 1 && filters[index_reference_word].minimum_number > num_of_occurrences_ref_word){
-                        //printf("dentro 4 if/else\n");
-                        (*tree)->is_valid = 0;
-                        count++;
-                        break;
-                    } else if(filters[index_reference_word].belonged_to_reference_word == 1 && filters[index_reference_word].exact_number > num_of_occurrences_ref_word){
-                        //printf("dentro 5 if/else\n");
-                        (*tree)->is_valid = 0;
-                        count++;
-                        break;
-                    } else if(filters[index_reference_word].belonged_to_reference_word == 1 && filters[index_reference_word].in_position[i] == 1 && reference_word[i] != (*tree)->word[i]){
-                        //printf("dentro 6 if/else\n");
-                        (*tree)->is_valid = 0;
-                        count++;
-                        break;
-                    }
+            word_to_add[index] = '\0';
+            hash_insert(table, word_to_add, words_size);
+            if(check_if_add_to_game(word_to_add, reference_word, filters, words_size, model_word) == 1){
+                if((*number_of_words) >= *array_size){
+                    (*array_size) += INCREMENT_SIZE_ARRAY;
+                    (*game_words) = (char**)realloc(*game_words, *array_size*sizeof(char*));
                 }
-            }*/
+                (*game_words)[*number_of_words] = malloc((words_size + 1)*sizeof(char));
+                strcpy((*game_words)[*number_of_words], word_to_add);
+                (*number_of_words)++;
+            }
         }
-        count = count + print_number_filtered_words(&(*tree)->right, filters, reference_word);
-    }
-    return count;
+    } while (end == 0);
 }
 
-void new_game(struct node** leaf, int words_size, int* number_of_words){
-    char reference_word[words_size+1];
-    char word_to_analyze[words_size+1];
+void new_game(struct hash_table** table, int words_size){
+    char reference_word[words_size + 1], *modified_characters, word_to_analyze[words_size + 1];
+    char* char_number_of_controls = malloc(11* sizeof(char));
+    int c, number_of_controls, counter, next_instruction, i;
+    short int end = 0;
+    int index = 0;
+    int array_size = INCREMENT_SIZE_ARRAY;
+    int number_of_words = 0;
+    char** game_words;
     struct filter filters[64];
-    int c,i,n, number_filtered_words = *number_of_words;
-    char char_number_of_controls[10];
-    int next_instruction;
-    int index = 0, number_of_controls, end = 0;
-    setup_filters(filters, words_size);
-    //while((c=getchar()) != '\n' && c != EOF);
+    struct hash_element* temp;
+    char* model_word = malloc((words_size + 1)* sizeof(char));
+
+    for(i = 0; i < words_size; i++){
+        model_word[i] = FORBIDDEN_SYMBOL;
+    }
+
+    for(i = 0; i < 64; i++){
+        filters[i].not_in_position = calloc(words_size, sizeof(short int));
+        filters[i].minimum_number = 0;
+        filters[i].exact_number = -1;
+    }
+
     while((c = getchar()) != '\n' && c != EOF){
         reference_word[index] = c;
-        //i = hash(c);
-        //filters[i].belonged_to_reference_word = 1;
-        //filters[i].in_position[index] = 1;
-        //filters[i].exact_number++;
         index++;
     }
     reference_word[index] = '\0';
-    //while((c=getchar()) != '\n' && c != EOF);
     index = 0;
     while((c = getchar()) != '\n' && c != EOF){
         char_number_of_controls[index] = c;
         index++;
     }
     char_number_of_controls[index] = '\0';
-    if(sscanf(char_number_of_controls, "%d", &number_of_controls)>0);
-    //number_of_controls = atoi(char_number_of_controls);
-    //quicksort(*eligible_words, 0, (*number_of_words) - 1);
-    //while((c=getchar()) != '\n' && c != EOF);
+    number_of_controls = fast_atoi(char_number_of_controls);
+    free(char_number_of_controls);
+    counter = number_of_controls;
     do{
-        //while((c=getchar()) != '\n' && c != EOF);
         index = 0;
-        if((c = getchar()) == '+'){
-            //instructions
+        c = getchar();
+        if(c == '+'){
             next_instruction = getchar();
-            while((c = getchar()) != '\n' && c != EOF);
-            /*while((c = getchar()) != '\n' && c != EOF){
-                next_instruction[index] = c;
-                index++;
-            }*/
-            //next_instruction[index] = '\0';
+            while ((c = getchar()) != '\n' && c != EOF);
             if(next_instruction == 'i'){
-                //addWords(eligible_words, filter_words, number_of_words, words_size);
-                //quicksort(*eligible_words, 0, (*number_of_words) - 1);
-                //heapsort(*eligible_words, *number_of_words);
-                n = addWords(leaf, number_of_words, words_size);
-                number_filtered_words = number_filtered_words + n - print_number_filtered_words(leaf, filters, reference_word);
+                if(counter == number_of_controls)
+                    add_words(table, words_size);
+                else
+                    add_words_during_game(table, &game_words, filters, words_size, reference_word, model_word, &number_of_words, &array_size);
             } else {
-                inorder_tree_walk(*leaf);
+                if(counter == number_of_controls){
+                    game_words = malloc(array_size*sizeof(char*));
+                    for(i = 0; i < HASH_SIZE; i++){
+                        temp = (*table)->list[i];
+                        while(temp != NULL){
+                            if(number_of_words >= array_size){
+                                array_size += INCREMENT_SIZE_ARRAY;
+                                game_words = realloc(game_words, array_size*sizeof(char*));
+                            }
+                            game_words[number_of_words] = malloc((words_size + 1)*sizeof(char));
+                            strcpy(game_words[number_of_words], temp->word);
+                            number_of_words++;
+                            temp = temp->next;
+                        }
+                    }
+                    quicksort(&game_words, 0, number_of_words - 1);
+                    for(i = 0; i < number_of_words; i++){
+                        printf("%s\n", game_words[i]);
+                        free(game_words[i]);
+                    }
+                    free(game_words);
+                    number_of_words = 0;
+                    array_size = 50;
+                } else {
+                    quicksort(&game_words, 0, number_of_words - 1);
+                    for(i = 0; i < number_of_words; i++){
+                        printf("%s\n", game_words[i]);
+                    }
+                }
             }
-        }else{
+        } else {
             word_to_analyze[index] = c;
             index++;
-            while((c = getchar()) != '\n' && c != EOF){
+            while ((c = getchar()) != '\n' && c != EOF){
                 word_to_analyze[index] = c;
                 index++;
             }
             word_to_analyze[index] = '\0';
-            //printf("%s\n", word_to_analyze);
-            if(findWord(leaf, word_to_analyze) != 0){
+            if(find_word(table, word_to_analyze) == 1){
                 if(strcmp(reference_word, word_to_analyze) == 0){
                     printf("ok\n");
                     end = 1;
                 }else{
-                    check_words(word_to_analyze, reference_word, filters);
-                    number_of_controls--;
-                    number_filtered_words = number_filtered_words - print_number_filtered_words(leaf, filters, reference_word);
-                    printf("%d\n", number_filtered_words);
-                    if(number_of_controls == 0)
-                        printf("ko\n");
+                    modified_characters = check_words_first_time(word_to_analyze, reference_word, filters, words_size, model_word);
+                    if(counter == number_of_controls){
+                        game_words = first_get_filtered_words(table, filters, modified_characters, words_size, model_word, &number_of_words, &array_size);
+                    } else {
+                        game_words = get_filtered_words(&game_words, filters, modified_characters, words_size, model_word, &number_of_words, &array_size);
+                    }
+                    counter--;
+                    free(modified_characters);
+                    printf("%d\n", number_of_words);
                 }
             }else{
                 printf("not_exists\n");
             }
         }
-    } while (end == 0 && number_of_controls > 0);
+    } while(end == 0 && counter > 0);
+
+    if(counter == 0 && end == 0)
+        printf("ko\n");
+
+    if(counter != number_of_controls){
+        for(i = 0; i < number_of_words; i++){
+            free(game_words[i]);
+        }
+        free(game_words);
+    }
     for(i = 0; i < 64; i++){
-        free(filters[i].in_position);
         free(filters[i].not_in_position);
     }
-    /*index = 0;
-    c = getchar();
-    if(c == '+'){
-        while((c = getchar()) != '\n' && c != EOF){
-            next_instruction[index] = c;
-            index++;
-        }
-        next_instruction[index] = '\0';
-        if(strcmp(next_instruction, START_ADD_WORDS) == 0){
-            n = addWords(leaf, number_of_words, words_size);
-        } else if(strcmp(next_instruction, NEW_GAME) == 0){
-            reset_words(leaf);
-            new_game(leaf, words_size, number_of_words);
-        }
-    }*/
+    free(model_word);
 }
 
-int findWord(struct node** root, char* word_to_find){
-    if(*root == t_nil)
+int find_word(struct hash_table** table, char* word_to_find){
+    int index = hash_function(word_to_find);
+    struct hash_element* temp = (*table)->list[index];
+    if((*table)->list[index] == NULL)
         return 0;
-    if(strcmp((*root)->word, word_to_find) == 0)
-        return 1;
-    else if(strcmp((*root)->word, word_to_find) < 0)
-        return findWord(&(*root)->right, word_to_find);
-    else
-        return findWord(&(*root)->left, word_to_find);
+    while (temp != NULL){
+        if(strcmp(temp->word, word_to_find) == 0)
+            return 1;
+        temp = temp->next;
+    }
+    return 0;
 }
 
-int addWords(struct node** leaf, int* number_of_words, int words_size){
-    int index, c, end = 0, number_added_words = 0;
-    char word_to_add[words_size +1];
-    //int* occurrences;
-    do{
-        index = 0;
-        c = getchar();
-        if(c == '+'){
-            end = 1;
-            while ((c=getchar()) != '\n' && c!= EOF);
-        }else{
-            //occurrences = calloc(64, sizeof(int));
-            word_to_add[index] = c;
-            //i = hash(c);
-            //occurrences[i]++;
-            index++;
-            while((c = getchar()) != '\n' && c != EOF){
-                word_to_add[index] = c;
-                //i = hash(c);
-                //occurrences[i]++;
-                index++;
-
-            }
-            word_to_add[index] = '\0';
-            //printf("%s\n", word_to_add);
-            //*eligible_words = (char**)realloc(*eligible_words, ((*number_of_words) + 1) * sizeof(char *));
-            //*filter_words = (char**)realloc(*filter_words, ((*number_of_words)+1)*sizeof(char *));
-            //(*eligible_words)[(*number_of_words)] = (char*)malloc((words_size + 1) * sizeof(char));
-            //(*filter_words)[(*number_of_words)] = (char*)malloc((words_size + 1) * sizeof(char));
-            //strcpy((*eligible_words)[*number_of_words], word_to_add);
-            //strcpy((*filter_words)[*number_of_words], word_to_add);
-            //insert_node(word_to_add, leaf, occurrences);
-            //insert_node(word_to_add, leaf);
-            rb_insert(leaf, get_new_node(word_to_add));
-            number_added_words++;
-            (*number_of_words)++;
-        }
-    } while(end == 0);
-    return number_added_words;
-}
-
-void free_tree(struct node* node){
-    if(node == t_nil)
-        return;
-    free_tree(node->left);
-    free_tree(node->right);
-    //free_tree(node->parent);
-    //free(node->occurrences);
-    free(node->word);
-    free(node);
-}
-
-void check_words(char* word, char* reference_word, struct filter* filters){
-    int i;
-    int index;
-    unsigned int len = strlen(reference_word);
+char* check_words_first_time(char* word, char* reference_word, struct filter* filters, int word_size, char* model_word){
+    int i, n, index, count = 0;
+    char* modified_characters = malloc((word_size + 1)* sizeof(char));
+    int *temp_min = calloc(64, sizeof(int));
+    short int *temp_exactly = calloc(64, sizeof(short int));
     char c;
-    for(i = 0; i < len; i++){
+    for(i = 0; i < word_size; i++){
         index = hash(word[i]);
-        if(word[i] == reference_word[i] && filters[index].in_position[i] != 1){
-            printf("+");
-            //filters[index].belonged_to_reference_word = 1;
-            if(filters[index].in_position[i] != 2)
+        if(word[i] == reference_word[i]){
+            if(temp_min[index] < filters[index].minimum_number){
+                temp_min[index]++;
+            } else {
+                temp_min[index]++;
                 filters[index].minimum_number++;
-            filters[index].in_position[i] = 1;
-            filters[index].exact_number++;
-        } else if(word[i] == reference_word[i] && filters[index].in_position[i] == 1){
-            printf("+");
-            //filters[index].belonged_to_reference_word = 1;
-        }
-        else{
-            if(check_for_presence(reference_word, word[i]) == 0){
-                printf("/");
-                filters[index].belonged_to_reference_word = 0;
             }
-            else{
-                c = number_of_occurrences(word, reference_word, i);
+            if(temp_exactly[index] == 1){
+                filters[index].exact_number = temp_min[index];
+            }
+            printf("+");
+            model_word[i] = word[i];
+            modified_characters[count] = word[i];
+            count++;
+        }else{
+            n = count_occurrences(reference_word, word[i]);
+            if(n == 0){
+                printf("/");
+                filters[index].exact_number = 0;
+                modified_characters[count] = word[i];
+                count++;
+            } else {
+                c = number_of_occurrences(word, reference_word, i, word_size);
                 printf("%c", c);
+                filters[index].not_in_position[i] = 1;
                 if(c == '|'){
-                    //filters[index].belonged_to_reference_word = 1;
-                    filters[index].not_in_position[i] = 1;
-                    if(check_incorrect_positions(word, reference_word, i, filters) == 1)
+                    if(temp_min[index] < filters[index].minimum_number){
+                        temp_min[index]++;
+                    } else {
+                        temp_min[index]++;
                         filters[index].minimum_number++;
-                } else{
-                    filters[index].not_in_position[i] = 1;
+                    }
+                    if(temp_exactly[index] == 1){
+                        filters[index].exact_number = temp_min[index];
+                    }
+                } else {
+                    temp_exactly[index] = 1;
+                    filters[index].exact_number = temp_min[index];
+                }
+                modified_characters[count] = word[i];
+                count++;
+            }
+        }
+    }
+    free(temp_min);
+    free(temp_exactly);
+    modified_characters[count] = '\0';
+    printf("\n");
+    return modified_characters;
+}
+
+char** get_filtered_words(char*** old_array, struct filter* filters, char* modified_characters, int word_size, const char* model_word, int* number_of_words, int* array_size){
+    int i, index, correct, n, j;
+    int new_number_of_words = 0, new_array_size = 50;
+    char word_to_add[word_size + 1];
+    char** new_array_words = malloc(new_array_size*sizeof(char*));
+    for(j = 0; j < *number_of_words; j++){
+        correct = 1;
+        for(i = 0; i < word_size; i++){
+            index = hash(modified_characters[i]);
+            if(((*old_array)[j][i] == modified_characters[i] && filters[index].not_in_position[i] == 1) || (model_word[i] != FORBIDDEN_SYMBOL && model_word[i] != ALREADY_NOTED && model_word[i] != (*old_array)[j][i])){
+                correct = 0;
+                break;
+            } else {
+                n = count_occurrences((*old_array)[j], modified_characters[i]);
+                if(n < filters[index].minimum_number || (filters[index].exact_number != -1 && n != filters[index].exact_number)){
+                    correct = 0;
+                    break;
                 }
             }
         }
-    }
-    printf("\n");
-}
-
-int check_incorrect_positions(char* word, char* reference_word, int index, struct filter* filters){
-    int index_character = hash(word[index]), i;
-    unsigned int end = strlen(word);
-    for(i = 0; i < end; i++){
-        if(reference_word[i] == word[index] && filters[index_character].in_position[i] == 0 && reference_word[i] != word[i]){
-            filters[index_character].in_position[i] = 2;
-            return 1;
+        if(correct == 1){
+            strcpy(word_to_add, (*old_array)[j]);
+            free((*old_array)[j]);
+            if(new_number_of_words >= new_array_size){
+                new_array_size += INCREMENT_SIZE_ARRAY;
+                new_array_words = (char**)realloc(new_array_words, new_array_size*sizeof(char*));
+            }
+            new_array_words[new_number_of_words] = malloc((word_size + 1)*sizeof(char));
+            strcpy(new_array_words[new_number_of_words], word_to_add);
+            new_number_of_words++;
+        }else{
+            free((*old_array)[j]);
         }
     }
-    return 0;
+    (*number_of_words) = new_number_of_words;
+    (*array_size) = new_array_size;
+    free(*old_array);
+    return new_array_words;
 }
 
-int check_for_presence(char* reference_word, char character){
-    int i;
-    unsigned int len = strlen(reference_word);
-    for(i = 0; i < len; i++){
-        if(reference_word[i] == character)
-            return 1;
+char** first_get_filtered_words(struct hash_table** table, struct filter* filters, char* modified_characters, int word_size, const char* model_word, int* number_of_words, int* array_size){
+    char** game_words = malloc((*array_size)*sizeof(char*));
+    int i, j, index, n;
+    short int correct;
+    struct hash_element* temp;
+    for(i = 0; i < HASH_SIZE; i++){
+        temp = (*table)->list[i];
+        while (temp != NULL){
+            correct = 1;
+            for(j = 0; j < word_size; j++){
+                index = hash(modified_characters[j]);
+                if((temp->word[j] == modified_characters[j] && filters[index].not_in_position[j] == 1) || (model_word[j] != FORBIDDEN_SYMBOL && model_word[j] != ALREADY_NOTED && temp->word[j] != model_word[j])){
+                    correct = 0;
+                    break;
+                } else {
+                    n = count_occurrences(temp->word, modified_characters[j]);
+                    if(n < filters[index].minimum_number || (filters[index].exact_number != -1 && n != filters[index].exact_number)){
+                        correct = 0;
+                        break;
+                    }
+                }
+            }
+            if(correct == 1){
+                if(*number_of_words >= *array_size){
+                    (*array_size) = (*array_size) + INCREMENT_SIZE_ARRAY;
+                    game_words = (char**)realloc(game_words, (*array_size)*sizeof(char*));
+                }
+                game_words[(*number_of_words)] = malloc((word_size + 1)*sizeof(char));
+                strcpy(game_words[(*number_of_words)], temp->word);
+                (*number_of_words)++;
+            }
+            temp = temp->next;
+        }
     }
-    return 0;
+    return game_words;
 }
 
-char number_of_occurrences(char* word, char* reference_word, int index) {
+char number_of_occurrences(const char* word, const char* reference_word, int index, int word_size) {
     int i, n = 0, c = 0, s = 0;
-    unsigned int len = strlen(reference_word);
-    for (i = 0; i < len; i++) {
+    for (i = 0; i < word_size; i++) {
         if (reference_word[i] == word[index]) {
             n++;
             if (reference_word[i] == word[i])
@@ -734,6 +486,7 @@ char number_of_occurrences(char* word, char* reference_word, int index) {
     else
         return '|';
 }
+
 //64 symbols
 int hash(char character){
     if(character == '-')
@@ -748,137 +501,64 @@ int hash(char character){
         return character - 59;
 }
 
-void setup_filters(struct filter* filters, int words_size){
-    int i;
-    for(i = 0; i < 64; i++){
-        filters[i].belonged_to_reference_word = 1;
-        filters[i].in_position = calloc(words_size, sizeof(short int));
-        filters[i].not_in_position = calloc(words_size, sizeof(short int));
-        filters[i].exact_number = 0;
-        filters[i].minimum_number = 0;
+int count_occurrences(char* word, const char ch){
+    int c = 0;
+    char n;
+    while ((n=*word++), ((n==ch)? ++c : 0), n);
+    return c;
+}
+
+int hash_function(char* word){
+    unsigned long hash = 5381;
+    int c;
+    while((c = (unsigned char)*word++)){
+        hash = ((hash << 5) + hash) + c;
     }
+    return hash % HASH_SIZE;
 }
 
-int find_occurrences(char* word, char c){
-    int i, n = 0;
-    unsigned int end = strlen(word);
-    for(i = 0; i < end; i++){
-        if(word[i] == c)
-            n++;
+int fast_atoi(char* str){
+    int val = 0;
+    while (*str){
+        val = val*10 + (*str++ - '0');
     }
-    return n;
+    return val;
 }
 
-void left_rotate(struct node** tree, struct node* element){
-    struct node* temp = element->right;
-    element->right = temp->left;
-
-    if(temp->left != t_nil)
-        temp->left->parent = element;
-    temp->parent = element->parent;
-    if(element->parent == t_nil)
-        *tree = temp;
-    else if(element == element->parent->left)
-        element->parent->left = temp;
-    else
-        element->parent->right = temp;
-    temp->left = element;
-    element->parent = temp;
+void swap(char** a, char** b){
+    char* temp = *a;
+    *a = *b;
+    *b = temp;
 }
 
-void right_rotate(struct node** tree, struct node* element){
-    struct node* temp = element->left;
-    element->left = temp->right;
+int partition(char*** game_words, int start, int end){
+    char* pivot = (*game_words)[end];
+    int i = start - 1;
+    int j;
 
-    if(temp->right != t_nil)
-        temp->right->parent = element;
-    temp->parent = element->parent;
-    if(element->parent == t_nil)
-        *tree = temp;
-    else if(element == element->parent->right)
-        element->parent->right = temp;
-    else
-        element->parent->left = temp;
-    temp->right = element;
-    element->parent = temp;
-}
-
-void rb_insert_fixup(struct node** tree, struct node* element){
-    struct node *x, *y;
-    if(element == (*tree))
-        (*tree)->color = BLACK;
-    else{
-        x = element->parent;
-        if(x->color == RED){
-            if (x == x->parent->left) {
-                y = x->parent->right;
-                if (y->color == RED) {
-                    x->color = BLACK;
-                    y->color = BLACK;
-                    x->parent->color = RED;
-                    rb_insert_fixup(tree, x->parent);
-                } else {
-                    if (element == x->right) {
-                        element = x;
-                        left_rotate(tree, element);
-                        x = element->parent;
-                    }
-                    x->color = BLACK;
-                    x->parent->color = RED;
-                    right_rotate(tree, x->parent);
-                }
-            } else {
-                y = x->parent->left;
-                if (y->color == RED) {
-                    x->color = BLACK;
-                    y->color = BLACK;
-                    x->parent->color = RED;
-                    rb_insert_fixup(tree, x->parent);
-                } else {
-                    if (element == x->left) {
-                        element = x;
-                        right_rotate(tree, element);
-                        x = element->parent;
-                    }
-                    x->color = BLACK;
-                    x->parent->color = RED;
-                    left_rotate(tree, x->parent);
-                }
-            }
+    for(j = start; j < end; j++){
+        if(strcmp((*game_words)[j], pivot) <= 0){
+            i++;
+            swap(&(*game_words)[i], &(*game_words)[j]);
         }
     }
+    swap(&(*game_words)[i+1], &(*game_words)[end]);
+    return (i+1);
 }
 
-void rb_insert(struct node** tree, struct node* element){
-    struct node* y = t_nil;
-    struct node* x = *tree;
-    while (x != t_nil) {
-        y = x;
+int randomized_partition(char*** game_words, int start, int end){
+    srand(time(0));
+    int random = start + rand() % (end - start);
+    char* temp = (*game_words)[random];
+    (*game_words)[random] = (*game_words)[start];
+    (*game_words)[start] = temp;
+    return partition(game_words, start, end);
+}
 
-        if (strcmp(element->word, x->word) < 0)
-            x = x->left;
-        else if (strcmp(element->word, x->word) > 0)
-            x = x->right;
+void quicksort(char*** game_words, int start, int end){
+    if(start < end){
+        int p = randomized_partition(game_words, start, end);
+        quicksort(game_words, start, p - 1);
+        quicksort(game_words, p + 1, end);
     }
-    element->parent = y;
-
-    if (y == t_nil)
-        (*tree) = element;
-    else if (strcmp(element->word, y->word) < 0)
-        y->left = element;
-    else
-        y->right = element;
-
-    element->left  = t_nil;
-    element->right = t_nil;
-    element->color = RED;
-    rb_insert_fixup(tree, element);
-}
-
-struct node* get_new_node(char* word){
-    struct node* new_node = malloc(sizeof(struct node));
-    new_node->word = malloc((strlen(word)+1)* sizeof(char));
-    strcpy(new_node->word, word);
-    new_node->is_valid = 1;
-    return new_node;
 }
