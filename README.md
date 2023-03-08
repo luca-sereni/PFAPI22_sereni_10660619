@@ -1,2 +1,3 @@
-# Prova Finale di Algoritmi e Strutture Dati 2021/2022
-Voto: 30/30
+# Final Project "Algorithms and Data Structures" 2021/2022
+C implementation
+Grade: 30/30
